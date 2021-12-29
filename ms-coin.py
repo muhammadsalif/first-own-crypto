@@ -84,7 +84,7 @@ class Blockchan:
         previous_block = self.get_previous_block()
         return previous_block["index"]+1
 
-    def add_nodes(self, address):
+    def add_node(self, address):
         parsed_url = urlparse(address)
         self.nodes.add(parsed_url.netloc)
 
@@ -112,6 +112,9 @@ class Blockchan:
 app = Flask(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
+# creating an address for the node on port 5000
+node_address = str(uuid4()).replace("-", "")
+
 # Creating a blockchain
 # instance of class
 blockchain = Blockchan()
@@ -126,6 +129,8 @@ def mine_block():
     previous_proof = previous_block["proof"]
     proof = blockchain.proof_of_work(previous_proof)
     previous_hash = blockchain.hash(previous_block)
+    blockchain.add_transactions(
+        sender=node_address, receiver="Salif", amount=1)
     block = blockchain.create_block(proof, previous_hash)
     response = {
         **block,
@@ -156,8 +161,41 @@ def is_chain_valid():
 
     return jsonify(response), 200
 
+# Adding new transaction to blockchain
+
+
+@app.route("/add_transaction", methods=["POST"])
+def add_transaction():
+    json = request.get_json()
+    transaction_keys = ["sender", "receiver", "amount"]
+
+    if not all(key in json for key in transaction_keys):
+        return "Information is missing", 400
+
+    index = blockchain.add_transactions(
+        json["sender"], json["receiver"], json["amount"])
+
+    response = {"message", f"This transaction will be added to Block {index}"}
+
+    return jsonify(response), 201
+
 
 # Decentralizing our blockchain
+
+# Connecting new nodes
+@app.route("/connect_node", methods=["POST"])
+def connect_node():
+    json = request.get_json()
+    nodes = json.get("nodes")
+    if nodes is None:
+        return "No node", 401
+    for eachNode in nodes:
+        blockchain.add_node(eachNode)
+
+    response = {"message": "All nodes are connected",
+                "total_nodes": list(blockchain.nodes)}
+
+    return jsonify(response), 200
 
 
 # Running flask app

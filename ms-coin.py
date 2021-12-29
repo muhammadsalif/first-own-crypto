@@ -1,4 +1,4 @@
-# Building a cryptocurrency 
+# Building a cryptocurrency
 
 import datetime
 import hashlib
@@ -8,18 +8,22 @@ import requests
 from uuid import uuid4
 from urllib.parse import urlparse
 
+
 class Blockchan:
 
     def __init__(self):
         self.chain = []
+        self.transactions = []
         self.create_block(proof=1, previous_hash="0")
 
     def create_block(self, proof, previous_hash):
         block = {"index": len(self.chain) + 1,
                  "timestamp": str(datetime.datetime.now()),
                  "proof": proof,
-                 "previous_hash": previous_hash
+                 "previous_hash": previous_hash,
+                 "transactions": self.transactions
                  }
+        self.transactions = []
         self.chain.append(block)
         return block
 
@@ -70,6 +74,16 @@ class Blockchan:
 
         return True
 
+    def add_transactions(self, sender, receiver, amount):
+        self.transactions.append({
+            "sender": sender,
+            "receiver": receiver,
+            "amount": amount
+        })
+        previous_block = self.get_previous_block()
+        return previous_block["index"]+1
+
+
 # Creating web app from flask
 app = Flask(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
@@ -79,6 +93,7 @@ app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 blockchain = Blockchan()
 
 # Mining a new block
+
 
 @app.route("/mine_block", methods=["GET"])
 def mine_block():
@@ -105,10 +120,11 @@ def get_chain():
     }
     return jsonify(response), 200
 
+
 @app.route("/is_chain_valid", methods=["GET"])
 def is_chain_valid():
     is_valid = blockchain.is_chain_valid(blockchain.chain)
-   
+
     if is_valid:
         response = {"message": "Blockchain is valid"}
     else:
@@ -117,46 +133,7 @@ def is_chain_valid():
     return jsonify(response), 200
 
 
-
 # Decentralizing our blockchain
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # Running flask app

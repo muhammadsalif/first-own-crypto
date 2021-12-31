@@ -166,7 +166,7 @@ def is_chain_valid():
 
 @app.route("/add_transaction", methods=["POST"])
 def add_transaction():
-    json = request.get_json()
+    json = request.get_json(force=True, silent=True, cache=False)
     transaction_keys = ["sender", "receiver", "amount"]
 
     if not all(key in json for key in transaction_keys):
@@ -175,7 +175,7 @@ def add_transaction():
     index = blockchain.add_transactions(
         json["sender"], json["receiver"], json["amount"])
 
-    response = {"message", f"This transaction will be added to Block {index}"}
+    response = {"message": f"This transaction will be added to Block {index}"}
 
     return jsonify(response), 201
 
@@ -185,15 +185,37 @@ def add_transaction():
 # Connecting new nodes
 @app.route("/connect_node", methods=["POST"])
 def connect_node():
-    json = request.get_json()
+    json = request.get_json(force=True, silent=True, cache=False)
+
     nodes = json.get("nodes")
+
     if nodes is None:
         return "No node", 401
     for eachNode in nodes:
+        print(f"eachNode: {eachNode}")
         blockchain.add_node(eachNode)
 
     response = {"message": "All nodes are connected",
                 "total_nodes": list(blockchain.nodes)}
+
+    return jsonify(response), 200
+
+
+# Replacing the chain by the longest chain if needed
+@app.route("/replace_chain", methods=["GET"])
+def replace_chain():
+    is_chain_replaced = blockchain.replace_chain()
+
+    if is_chain_replaced:
+        response = {
+            "message": "Node had different chain so the chain is replaced by the longest one",
+            "new_chain": blockchain.chain
+        }
+    else:
+        response = {
+            "message": "All good, chain is the largest one",
+            "actual_chain": blockchain.chain
+        }
 
     return jsonify(response), 200
 
